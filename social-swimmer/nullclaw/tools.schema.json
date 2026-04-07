@@ -1,0 +1,75 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "NullClaw Tool Definitions",
+    "type": "array",
+    "description": "A collection of executable skills or API integrations available to the agent.",
+    "items": {
+      "type": "object",
+      "required": ["name", "description", "parameters", "handler"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "Unique identifier for the tool. Must be alphanumeric with no spaces."
+        },
+        "description": {
+          "type": "string",
+          "description": "High-level explanation of the tool's purpose. The LLM (ZAI) uses this to decide when to invoke the tool."
+        },
+        "parameters": {
+          "type": "object",
+          "required": ["type", "properties"],
+          "properties": {
+            "type": { "const": "object" },
+            "properties": {
+              "type": "object",
+              "description": "Map of argument names to their individual JSON Schema definitions."
+            },
+            "required": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "List of mandatory parameter names that the LLM must provide."
+            }
+          },
+          "description": "Standard JSON Schema defining the input arguments for the tool."
+        },
+        "handler": {
+          "type": "object",
+          "description": "Execution logic for the tool (Network, Shell, or Binary).",
+          "required": ["type"],
+          "oneOf": [
+            {
+              "title": "HTTP Endpoint (Remote Skills)",
+              "properties": {
+                "type": { "const": "http" },
+                "url": { "type": "string", "format": "uri", "description": "The destination URL (e.g., skills.sh endpoint)." },
+                "method": { "enum": ["GET", "POST", "PUT"], "default": "POST" },
+                "headers": { "type": "object", "description": "Key-value pairs for authentication and metadata." },
+                "body": { "type": "object", "description": "Payload template using {{mustache}} syntax for parameter injection." }
+              },
+              "required": ["url"]
+            },
+            {
+              "title": "Shell Script (CLI Interaction)",
+              "properties": {
+                "type": { "const": "shell" },
+                "shell": { "type": "string", "default": "/bin/sh", "description": "Path to the shell interpreter." },
+                "exec": { "type": "string", "description": "The raw shell command string with {{parameter}} placeholders." },
+                "timeout": { "type": "integer", "description": "Maximum execution time in milliseconds." }
+              },
+              "required": ["exec"]
+            },
+            {
+              "title": "Direct Command (Binary Execution)",
+              "properties": {
+                "type": { "const": "command" },
+                "path": { "type": "string", "description": "Absolute path to the executable binary." },
+                "args": { "type": "array", "items": { "type": "string" }, "description": "List of arguments passed directly to the binary." }
+              },
+              "required": ["path"]
+            }
+          ]
+        }
+      }
+    }
+  }
